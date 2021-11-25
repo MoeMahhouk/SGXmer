@@ -1,0 +1,3 @@
+[submodule "wamr/runtime"]
+	path = wamr/runtime
+	url = https://github.com/bytecodealliance/wasm-micro-runtime.git
