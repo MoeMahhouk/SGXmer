@@ -34,14 +34,19 @@
 enclave {
     
     from "sgx_tstdc.edl" import *;
+    from "sgx_pthread.edl" import *;
     from "sgx_wamr.edl" import *;
 
     trusted {
-        public void ecall_do_nothing();
+        public void ecall_init_runtime();
+        public void ecall_set_log_level(int log_level);
+        public void ecall_destroy_runtime();
     };
 
     untrusted {
         void ocall_print([in, string]const char* str);
+        void ocall_free(uint64_t buffer);
+        unsigned char *ocall_read_file_to_buffer([in, string]const char *filename,[out] uint32_t *ret_size);
     };
 
 };

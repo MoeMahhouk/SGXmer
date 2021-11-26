@@ -1,6 +1,3 @@
-set (WAMR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/runtime)
-set (WAMR_EMBEDDING_API_INCLUDE_PATH  ${WAMR_ROOT_DIR}/core/iwasm/include)
-
 set (WAMR_BUILD_PLATFORM "linux-sgx")
 set (WAMR_BUILD_TARGET "X86_64")
 set (WAMR_BUILD_INTERP 1)
@@ -21,7 +18,7 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -ffunction-sections -fdata-secti
                                      -Wall -Wno-unused-parameter -Wno-pedantic \
                                      -nostdinc -fvisibility=hidden -fpie" )
 
-include (${WAMR_ROOT_DIR}/build-scripts/runtime_lib.cmake)
+include (${WAMR_DIR}/build-scripts/runtime_lib.cmake)
 add_library(vmlib STATIC ${WAMR_RUNTIME_LIB_SOURCE})
 
 add_custom_command (

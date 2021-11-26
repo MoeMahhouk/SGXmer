@@ -30,6 +30,7 @@
  */
 
 
+#include "sgx_error.h"
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -38,9 +39,13 @@
 # include <pwd.h>
 # define MAX_PATH FILENAME_MAX
 
+#include "GlobalVariables.h"
+
 #include "sgx_urts.h"
 #include "App.h"
 #include "Enclave_u.h"
+#include "InputParser.h"
+
 
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
@@ -148,6 +153,14 @@ void print_error_message(sgx_status_t ret)
     if (idx == ttl)
     	printf("Error code is 0x%X. Please refer to the \"Intel SGX SDK Developer Reference\" for more details.\n", ret);
 }
+void sgx_ret_check(sgx_status_t ret) 
+{
+    if (ret != SGX_SUCCESS) 
+    { 
+        print_error_message(ret);
+        exit(EXIT_FAILURE); 
+    }
+}
 
 /* Initialize the enclave:
  *   Call sgx_create_enclave to initialize an enclave instance
@@ -159,33 +172,73 @@ int initialize_enclave(void)
     /* Call sgx_create_enclave to initialize an enclave instance */
     /* Debug Support: set 2nd parameter to 1 */
     ret = sgx_create_enclave(ENCLAVE_FILENAME, SGX_DEBUG_FLAG, NULL, NULL, &global_eid, NULL);
-    if (ret != SGX_SUCCESS) {
-        print_error_message(ret);
-        return -1;
-    }
+    sgx_ret_check(ret);
 
     return 0;
 }
 
 /* OCall functions */
-void ocall_print_string(const char *str)
-{
-    /* Proxy/Bridge will check the length and null-terminate 
-     * the input string to prevent buffer overflow. 
-     */
-    printf("%s", str);
-}
-
 void ocall_print(const char* str)
 {
     printf("%s", str);
 }
+
+void ocall_free(uint64_t buffer)
+{
+    free((void *)buffer);
+}
+
+unsigned char *ocall_read_file_to_buffer(const char *filename, uint32_t *ret_size)
+{
+    unsigned char *buffer;
+    FILE *file;
+    int file_size, read_size;
+
+    if (!filename || !ret_size) {
+        printf("Read file to buffer failed: invalid filename or ret size.\n");
+        return NULL;
+    }
+
+    if (!(file = fopen(filename, "r"))) {
+        printf("Read file to buffer failed: open file %s failed.\n",
+               filename);
+        return NULL;
+    }
+
+    fseek(file, 0, SEEK_END);
+    file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    if (!(buffer = (unsigned char*)malloc(file_size))) {
+        printf("Read file to buffer failed: alloc memory failed.\n");
+        fclose(file);
+        return NULL;
+    }
+
+    read_size = fread(buffer, 1, file_size, file);
+    fclose(file);
+
+    if (read_size < file_size) {
+        printf("Read file to buffer failed: read file content failed.\n");
+        free(buffer);
+        return NULL;
+    }
+
+    *ret_size = file_size;
+
+    return buffer;
+}
+
+// TODO: add an input parser for the difference configurations possible at the start and set the right data structures for the ecalls
+
+
 /* Application entry */
 int SGX_CDECL main(int argc, char *argv[])
 {
-    (void)(argc);
-    (void)(argv);
+    parseInput(argc, argv);
 
+    printf("maximum number of threads is %d \n stack size is %d \n heap size is %d \n log level is %d \n", WAMR_INPUT_CONFIG.max_thread_num, WAMR_INPUT_CONFIG.stack_size, WAMR_INPUT_CONFIG.heap_size, WAMR_INPUT_CONFIG.log_verbose_lvl);
+    sgx_status_t ret = SGX_SUCCESS;
 
     /* Initialize the enclave */
     if(initialize_enclave() < 0){
@@ -193,6 +246,15 @@ int SGX_CDECL main(int argc, char *argv[])
         getchar();
         return -1; 
     }
+
+    ret = ecall_set_log_level(global_eid, 4);
+    sgx_ret_check(ret);
+
+    ret = ecall_init_runtime(global_eid);
+    sgx_ret_check(ret);
+
+    ret = ecall_destroy_runtime(global_eid);
+    sgx_ret_check(ret);
 
 
     /* Destroy the enclave */

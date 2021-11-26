@@ -1,8 +1,9 @@
 cmake_minimum_required (VERSION 2.8...3.16)
 project(SGXmer "C" "CXX")
-
-add_subdirectory(wamr)
 set (WAMR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/wamr/runtime)
+set (WAMR_EMBEDDING_API_INCLUDE_PATH  ${WAMR_DIR}/core/iwasm/include)
+add_subdirectory(wamr)
+
 set (VMLIB_UNTRUSTED         "${CMAKE_BINARY_DIR}/libvmlib_untrusted.a")
 
 set (WASI_VERSION 12)
@@ -42,9 +43,9 @@ include(cmake/ConfigSGX.cmake)
 
 set(COMMON_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Include")
 
-set(ENCLAVE_LIB_NAME            SimpleEnclave)
-set(SIGNED_ENCLAVE_NAME         SimpleEnclave.signed.so)
-set(APP_NAME                    SimpleSGXApp)
+set(ENCLAVE_LIB_NAME            SGXmerEnclave)
+set(SIGNED_ENCLAVE_NAME         SGXmerEnclave.signed.so)
+set(APP_NAME                    SGXmer)
 #set(Security_Link_Flags			    "-Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -pie")
 
 
